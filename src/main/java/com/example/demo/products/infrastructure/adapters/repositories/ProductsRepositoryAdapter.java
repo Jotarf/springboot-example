@@ -1,8 +1,13 @@
 package com.example.demo.products.infrastructure.adapters.repositories;
 
+import com.example.demo.common.application.dtos.PaginationResponseDto;
+import com.example.demo.products.application.dtos.request.GetPaginatedProductsQueryDto;
 import com.example.demo.products.application.ports.ProductGateway;
 import com.example.demo.products.domain.models.Product;
 import com.example.demo.products.infrastructure.entities.ProductEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,6 +26,20 @@ public class ProductsRepositoryAdapter implements ProductGateway {
     public List<Product> getProducts() {
         List<ProductEntity> products = this.productRepository.findAll();
         return products.stream().map(ProductEntity::toModel).toList();
+    }
+
+    @Override
+    public PaginationResponseDto<Product> getPaginatedProducts(GetPaginatedProductsQueryDto query) {
+        Pageable pageable = PageRequest.of(query.page, query.limit);
+        Page<ProductEntity> products = this.productRepository.findAll(pageable);
+
+        return new PaginationResponseDto<>(
+                products.getContent().stream().map(ProductEntity::toModel).toList(),
+                query.page,
+                query.limit,
+                products.getTotalPages(),
+                products.getTotalElements()
+        );
     }
 
     @Override
