@@ -2,7 +2,7 @@ package com.example.demo.products.infrastructure.adapters.repositories;
 
 import com.example.demo.common.application.dtos.PaginationResponseDto;
 import com.example.demo.products.application.dtos.request.GetPaginatedProductsQueryDto;
-import com.example.demo.products.application.ports.ProductGateway;
+import com.example.demo.products.application.ports.ProductRepository;
 import com.example.demo.products.domain.models.Product;
 import com.example.demo.products.infrastructure.entities.ProductEntity;
 import org.springframework.data.domain.Page;
@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class ProductsRepositoryAdapter implements ProductGateway {
+public class ProductRepositoryAdapter implements ProductRepository {
 
     private final JpaProductRepository productRepository;
 
-    public ProductsRepositoryAdapter(JpaProductRepository productRepository) {
+    public ProductRepositoryAdapter(JpaProductRepository productRepository) {
         this.productRepository = productRepository;
     }
 

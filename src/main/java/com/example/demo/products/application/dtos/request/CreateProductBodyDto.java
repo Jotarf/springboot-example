@@ -9,7 +9,7 @@ import org.hibernate.validator.constraints.Length;
 
 @Data
 @AllArgsConstructor
-public class CreateProductRequest {
+public class CreateProductBodyDto {
 
     @NotBlank(message = "Product name can't be blank")
     @Length(min = 3, max = 50, message = "Product name length must be min 3 characters max 50 characters")

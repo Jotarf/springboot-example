@@ -2,12 +2,12 @@ package com.example.demo.products.infrastructure.controllers;
 
 
 import com.example.demo.common.application.dtos.PaginationResponseDto;
-import com.example.demo.products.application.dtos.request.CreateProductRequest;
+import com.example.demo.products.application.dtos.request.CreateProductBodyDto;
 import com.example.demo.products.application.dtos.request.GetPaginatedProductsQueryDto;
-import com.example.demo.products.application.dtos.response.GetProductResponse;
-import com.example.demo.products.application.usecases.CreateProduct;
-import com.example.demo.products.application.usecases.GetAllProducts;
-import com.example.demo.products.application.usecases.GetPaginatedProducts;
+import com.example.demo.products.application.dtos.response.GetProductResponseDto;
+import com.example.demo.products.application.usecases.CreateProductUseCase;
+import com.example.demo.products.application.usecases.GetAllProductsUseCase;
+import com.example.demo.products.application.usecases.GetPaginatedProductsUseCase;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -21,40 +21,40 @@ import java.util.List;
 @Slf4j
 public class ProductController {
 
-    private final GetAllProducts getAllProducts;
-    private final CreateProduct createProduct;
-    private final GetPaginatedProducts getPaginatedProducts;
+    private final GetAllProductsUseCase getAllProductsUseCase;
+    private final CreateProductUseCase createProductUseCase;
+    private final GetPaginatedProductsUseCase getPaginatedProductsUseCase;
 
     public ProductController(
-            GetAllProducts getAllProducts,
-            CreateProduct createProduct,
-            GetPaginatedProducts getPaginatedProducts
+            GetAllProductsUseCase getAllProductsUseCase,
+            CreateProductUseCase createProductUseCase,
+            GetPaginatedProductsUseCase getPaginatedProductsUseCase
     ) {
-        this.getAllProducts = getAllProducts;
-        this.createProduct = createProduct;
-        this.getPaginatedProducts = getPaginatedProducts;
+        this.getAllProductsUseCase = getAllProductsUseCase;
+        this.createProductUseCase = createProductUseCase;
+        this.getPaginatedProductsUseCase = getPaginatedProductsUseCase;
     }
 
     @GetMapping
-    public ResponseEntity<List<GetProductResponse>> getProducts() {
-        List<GetProductResponse> products = this.getAllProducts.execute();
+    public ResponseEntity<List<GetProductResponseDto>> getProducts() {
+        List<GetProductResponseDto> products = this.getAllProductsUseCase.execute();
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     @GetMapping("paginated")
-    public ResponseEntity<PaginationResponseDto<GetProductResponse>> getPaginatedProducts(
+    public ResponseEntity<PaginationResponseDto<GetProductResponseDto>> getPaginatedProducts(
             @Valid @ModelAttribute GetPaginatedProductsQueryDto query
     ) {
-        PaginationResponseDto<GetProductResponse> products = this.getPaginatedProducts.execute(query);
+        PaginationResponseDto<GetProductResponseDto> products = this.getPaginatedProductsUseCase.execute(query);
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<GetProductResponse> createProduct(
-            @Valid @RequestBody CreateProductRequest createProductRequest
+    public ResponseEntity<GetProductResponseDto> createProduct(
+            @Valid @RequestBody CreateProductBodyDto createProductBodyDto
     ) throws Exception {
         try {
-        GetProductResponse product = this.createProduct.execute(createProductRequest);
+        GetProductResponseDto product = this.createProductUseCase.execute(createProductBodyDto);
         return new ResponseEntity<>(product, HttpStatus.CREATED);
 
         }catch(Exception ex){

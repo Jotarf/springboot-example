@@ -7,7 +7,7 @@ import com.example.demo.products.domain.models.Product;
 import java.util.List;
 import java.util.Optional;
 
-public interface ProductGateway {
+public interface ProductRepository {
     List<Product> getProducts();
     PaginationResponseDto<Product> getPaginatedProducts(GetPaginatedProductsQueryDto query);
     Optional<Product> createProduct(Product product);
