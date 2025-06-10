@@ -28,6 +28,13 @@ public class ProductEntity {
     @Column(name="quantity", nullable = false)
     private Long quantity;
 
+    public ProductEntity(Product product){
+        this.id = product.getId();
+        this.name = product.getName();
+        this.price = product.getPrice();
+        this.quantity = product.getQuantity();
+    }
+
     public Product toModel(){
         return new Product(this.getId(), this.getName(), this.getPrice(), this.getQuantity());
     }
