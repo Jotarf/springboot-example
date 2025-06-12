@@ -6,13 +6,13 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class GetProductResponse {
+public class GetProductResponseDto {
     private UUID id;
     private String name;
     private Double price;
     private Long quantity;
 
-    public GetProductResponse(Product product){
+    public GetProductResponseDto(Product product){
         this.id = product.getId();
         this.name = product.getName();
         this.price = product.getPrice();
