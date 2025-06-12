@@ -1,10 +1,15 @@
 package com.example.demo.products.infrastructure.adapters.repositories;
 
 import com.example.demo.common.application.dtos.PaginationResponseDto;
+import com.example.demo.common.domain.criteria.Criteria;
+import com.example.demo.common.infrastructure.criteria.HibernateCriteriaConverter;
 import com.example.demo.products.application.dtos.request.GetPaginatedProductsQueryDto;
 import com.example.demo.products.application.ports.ProductRepository;
 import com.example.demo.products.domain.models.Product;
 import com.example.demo.products.infrastructure.entities.ProductEntity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,9 +22,14 @@ import java.util.Optional;
 public class ProductRepositoryAdapter implements ProductRepository {
 
     private final JpaProductRepository productRepository;
+    private final HibernateCriteriaConverter<ProductEntity> hibernateCriteriaConverter;
 
-    public ProductRepositoryAdapter(JpaProductRepository productRepository) {
+    public ProductRepositoryAdapter(
+            JpaProductRepository productRepository,
+            HibernateCriteriaConverter<ProductEntity> hibernateCriteriaConverter
+    ) {
         this.productRepository = productRepository;
+        this.hibernateCriteriaConverter = hibernateCriteriaConverter;
     }
 
     @Override
@@ -50,5 +60,14 @@ public class ProductRepositoryAdapter implements ProductRepository {
         }catch(Exception ex){
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<Product> getProductsByCriteria(Criteria criteria) {
+        TypedQuery<ProductEntity> query = hibernateCriteriaConverter.convert(criteria, ProductEntity.class);
+
+        return query.getResultList().stream()
+                .map(ProductEntity::toModel)
+                .toList();
     }
 }

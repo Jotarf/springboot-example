@@ -4,10 +4,12 @@ package com.example.demo.products.infrastructure.controllers;
 import com.example.demo.common.application.dtos.PaginationResponseDto;
 import com.example.demo.products.application.dtos.request.CreateProductBodyDto;
 import com.example.demo.products.application.dtos.request.GetPaginatedProductsQueryDto;
+import com.example.demo.products.application.dtos.request.GetProductsByCriteriaDto;
 import com.example.demo.products.application.dtos.response.GetProductResponseDto;
 import com.example.demo.products.application.usecases.CreateProductUseCase;
 import com.example.demo.products.application.usecases.GetAllProductsUseCase;
 import com.example.demo.products.application.usecases.GetPaginatedProductsUseCase;
+import com.example.demo.products.application.usecases.GetProductsByCriteriaUseCase;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -24,15 +26,18 @@ public class ProductController {
     private final GetAllProductsUseCase getAllProductsUseCase;
     private final CreateProductUseCase createProductUseCase;
     private final GetPaginatedProductsUseCase getPaginatedProductsUseCase;
+    private final GetProductsByCriteriaUseCase getProductsByCriteriaUseCase;
 
     public ProductController(
             GetAllProductsUseCase getAllProductsUseCase,
             CreateProductUseCase createProductUseCase,
-            GetPaginatedProductsUseCase getPaginatedProductsUseCase
+            GetPaginatedProductsUseCase getPaginatedProductsUseCase,
+            GetProductsByCriteriaUseCase getProductsByCriteriaUseCase
     ) {
         this.getAllProductsUseCase = getAllProductsUseCase;
         this.createProductUseCase = createProductUseCase;
         this.getPaginatedProductsUseCase = getPaginatedProductsUseCase;
+        this.getProductsByCriteriaUseCase = getProductsByCriteriaUseCase;
     }
 
     @GetMapping
@@ -46,6 +51,14 @@ public class ProductController {
             @Valid @ModelAttribute GetPaginatedProductsQueryDto query
     ) {
         PaginationResponseDto<GetProductResponseDto> products = this.getPaginatedProductsUseCase.execute(query);
+        return new ResponseEntity<>(products, HttpStatus.OK);
+    }
+
+    @GetMapping("criteria")
+    public ResponseEntity<List<GetProductResponseDto>> getProductsByCriteria(
+            @Valid @ModelAttribute GetProductsByCriteriaDto query
+    ) {
+        List<GetProductResponseDto> products = this.getProductsByCriteriaUseCase.execute(query);
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
