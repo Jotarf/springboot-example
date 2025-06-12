@@ -13,59 +13,13 @@ import java.util.function.BiFunction;
 public class HibernateCriteriaConverter<T> {
     private final CriteriaBuilder builder;
     private final EntityManager entityManager;
+    private final PredicateFactory predicateFactory;
     private final Map<Join<?, ?>, From<?, ?>> joinParents = new HashMap<>();
-    private final Map<Class<?>, BiFunction<Path<?>, Number, Predicate>> greaterThanHandlers = new HashMap<>();
-    private final Map<Class<?>, BiFunction<Path<?>, Number, Predicate>> lessThanHandlers = new HashMap<>();
 
-    private final HashMap<SingleFilterOperator, BiFunction<SingleFilter<?>, Path<?>, Predicate>> predicateTransformers = new HashMap<>() {{
-        put(SingleFilterOperator.EQUAL, HibernateCriteriaConverter.this::equalsPredicateTransformer);
-        put(SingleFilterOperator.NOT_EQUAL, HibernateCriteriaConverter.this::notEqualsPredicateTransformer);
-        put(SingleFilterOperator.GT, HibernateCriteriaConverter.this::greaterThanPredicateTransformer);
-        put(SingleFilterOperator.LT, HibernateCriteriaConverter.this::lowerThanPredicateTransformer);
-        put(SingleFilterOperator.CONTAINS, HibernateCriteriaConverter.this::containsPredicateTransformer);
-        put(SingleFilterOperator.NOT_CONTAINS, HibernateCriteriaConverter.this::notContainsPredicateTransformer);
-        put(SingleFilterOperator.IN, HibernateCriteriaConverter.this::inPredicateTransformer);
-    }};
-
-    private void initializeGreaterThanHandlers() {
-        // Populate the map with handlers for each numeric type
-        // The BiFunction takes Path and Number, and returns a Predicate
-        greaterThanHandlers.put(Integer.class, this::buildGreaterThanInteger);
-        greaterThanHandlers.put(int.class, this::buildGreaterThanInteger); // Handle primitive int
-        greaterThanHandlers.put(Long.class, this::buildGreaterThanLong);
-        greaterThanHandlers.put(long.class, this::buildGreaterThanLong); // Handle primitive long
-        greaterThanHandlers.put(Double.class, this::buildGreaterThanDouble);
-        greaterThanHandlers.put(double.class, this::buildGreaterThanDouble); // Handle primitive double
-        greaterThanHandlers.put(Float.class, this::buildGreaterThanFloat);
-        greaterThanHandlers.put(float.class, this::buildGreaterThanFloat);
-        greaterThanHandlers.put(Short.class, this::buildGreaterThanShort);
-        greaterThanHandlers.put(short.class, this::buildGreaterThanShort);
-        greaterThanHandlers.put(Byte.class, this::buildGreaterThanByte);
-        greaterThanHandlers.put(byte.class, this::buildGreaterThanByte);
-    }
-
-    private void initializeLessThanHandlers() {
-        // Populate the map with handlers for each numeric type
-        // The BiFunction takes Path and Number, and returns a Predicate
-        lessThanHandlers.put(Integer.class, this::buildLessThanInteger);
-        lessThanHandlers.put(int.class, this::buildLessThanInteger); // Handle primitive int
-        lessThanHandlers.put(Long.class, this::buildLessThanLong);
-        lessThanHandlers.put(long.class, this::buildLessThanLong); // Handle primitive long
-        lessThanHandlers.put(Double.class, this::buildLessThanDouble);
-        lessThanHandlers.put(double.class, this::buildLessThanDouble); // Handle primitive double
-        lessThanHandlers.put(Float.class, this::buildLessThanFloat);
-        lessThanHandlers.put(float.class, this::buildLessThanFloat);
-        lessThanHandlers.put(Short.class, this::buildLessThanShort);
-        lessThanHandlers.put(short.class, this::buildLessThanShort);
-        lessThanHandlers.put(Byte.class, this::buildLessThanByte);
-        lessThanHandlers.put(byte.class, this::buildLessThanByte);
-    }
-
-    public HibernateCriteriaConverter(EntityManager entityManager) {
+    public HibernateCriteriaConverter(EntityManager entityManager, PredicateFactory predicateFactory) {
         this.entityManager = entityManager;
         this.builder = entityManager.getCriteriaBuilder();
-        initializeGreaterThanHandlers();
-        initializeLessThanHandlers();
+        this.predicateFactory = predicateFactory;
     }
 
     public TypedQuery<T> convert(Criteria criteria, Class<T> aggregateClass) {
@@ -159,11 +113,7 @@ public class HibernateCriteriaConverter<T> {
         Path<?> path = buildPath(filter, root, joins);
         if (path == null) return null; //Path not found
 
-        BiFunction<SingleFilter<?>, Path<?>, Predicate> transformer = predicateTransformers.get(filter.getOperator());
-        if (transformer == null) {
-            throw new IllegalArgumentException("Unsupported operator: " + filter.getOperator()); // Or handle gracefully
-        }
-        return transformer.apply(filter, path);
+        return predicateFactory.generateSingleFilterPredicate(builder, filter, path);
     }
 
     private Predicate buildCompoundFilterPredicate(CompoundFilter filter, Root<T> root, List<Join<?, ?>> joins) {
@@ -235,123 +185,5 @@ public class HibernateCriteriaConverter<T> {
             }
         }
         return null;
-    }
-
-    private Predicate equalsPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        return builder.equal(path, filter.getValue());
-    }
-
-    private Predicate notEqualsPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        return builder.notEqual(path, filter.getValue());
-    }
-
-    private Predicate greaterThanPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        Object filterValue = filter.getValue();
-        Class<?> pathJavaType = path.getJavaType();
-
-        if (!(filterValue instanceof Number)) throw new RuntimeException("Error, filter value must be Number");
-
-        // Get the specific handler for the detected type
-        BiFunction<Path<?>, Number, Predicate> handler = greaterThanHandlers.get(pathJavaType);
-
-        if (handler == null) {
-            throw new IllegalArgumentException("Error: Unsupported numeric type for 'greaterThan' predicate on field with type: " + pathJavaType.getName());
-        }
-
-        // Apply the handler to create the predicate
-        return handler.apply(path, (Number) filterValue);
-
-    }
-
-    private Predicate lowerThanPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        Object filterValue = filter.getValue();
-        Class<?> pathJavaType = path.getJavaType();
-
-        if (!(filterValue instanceof Number)) throw new RuntimeException("Error, filter value must be Number");
-
-        // Get the specific handler for the detected type
-        BiFunction<Path<?>, Number, Predicate> handler = lessThanHandlers.get(pathJavaType);
-
-        if (handler == null) {
-            throw new IllegalArgumentException("Error: Unsupported numeric type for 'greaterThan' predicate on field with type: " + pathJavaType.getName());
-        }
-
-        // Apply the handler to create the predicate
-        return handler.apply(path, (Number) filterValue);
-    }
-
-    private Predicate containsPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        return builder.like(path.as(String.class), String.format("%%%s%%", filter.getValue()));
-    }
-
-    private Predicate notContainsPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        return builder.notLike(path.as(String.class), String.format("%%%s%%", filter.getValue()));
-    }
-
-    private Predicate andPredicateTransformer(Predicate... predicates) {
-        return builder.and(predicates);
-    }
-
-    private Predicate orPredicateTransformer(Predicate... predicates) {
-        return builder.or(predicates);
-    }
-
-    private Predicate inPredicateTransformer(SingleFilter<?> filter, Path<?> path) {
-        String[] values = ((String) filter.getValue()).split(",");
-        List<String> valueList = Arrays.asList(values);
-
-        return path.in(valueList);
-    }
-
-    private Predicate isNullTransformer(SingleFilter<?> filter, Path<?> path) {
-        return builder.isNull(path);
-    }
-
-    private Predicate buildGreaterThanInteger(Path<?> path, Number filterValue) {
-        return builder.greaterThan(path.as(Integer.class), filterValue.intValue());
-    }
-
-    private Predicate buildGreaterThanLong(Path<?> path, Number filterValue) {
-        return builder.greaterThan(path.as(Long.class), filterValue.longValue());
-    }
-
-    private Predicate buildGreaterThanDouble(Path<?> path, Number filterValue) {
-        return builder.greaterThan(path.as(Double.class), filterValue.doubleValue());
-    }
-
-    private Predicate buildGreaterThanFloat(Path<?> path, Number filterValue) {
-        return builder.greaterThan(path.as(Float.class), filterValue.floatValue());
-    }
-
-    private Predicate buildGreaterThanShort(Path<?> path, Number filterValue) {
-        return builder.greaterThan(path.as(Short.class), filterValue.shortValue());
-    }
-
-    private Predicate buildGreaterThanByte(Path<?> path, Number filterValue) {
-        return builder.greaterThan(path.as(Byte.class), filterValue.byteValue());
-    }
-
-    private Predicate buildLessThanInteger(Path<?> path, Number filterValue) {
-        return builder.lessThan(path.as(Integer.class), filterValue.intValue());
-    }
-
-    private Predicate buildLessThanLong(Path<?> path, Number filterValue) {
-        return builder.lessThan(path.as(Long.class), filterValue.longValue());
-    }
-
-    private Predicate buildLessThanDouble(Path<?> path, Number filterValue) {
-        return builder.lessThan(path.as(Double.class), filterValue.doubleValue());
-    }
-
-    private Predicate buildLessThanFloat(Path<?> path, Number filterValue) {
-        return builder.lessThan(path.as(Float.class), filterValue.floatValue());
-    }
-
-    private Predicate buildLessThanShort(Path<?> path, Number filterValue) {
-        return builder.lessThan(path.as(Short.class), filterValue.shortValue());
-    }
-
-    private Predicate buildLessThanByte(Path<?> path, Number filterValue) {
-        return builder.lessThan(path.as(Byte.class), filterValue.byteValue());
     }
 }
