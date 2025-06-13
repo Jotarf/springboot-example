@@ -127,7 +127,6 @@ public class CriteriaSpecificationConverter<T> implements Specification<T> {
     }
 
     private Predicate buildCompoundFilterPredicate(CompoundFilter filter, Root<T> root, List<Join<?, ?>> joins, CriteriaBuilder builder) {
-        //Predicate[] predicates = buildPredicates(filter.getFilters(), root, joins, builder).getExpressions().toArray(new Predicate[0]);
         List<Predicate> nestedPredicates = filter.getFilters().stream()
                 .map(nestedFilter -> buildPredicate(nestedFilter, root, joins, builder))
                 .filter(Objects::nonNull)
