@@ -2,13 +2,13 @@ package com.example.demo.products.infrastructure.adapters.repositories;
 
 import com.example.demo.common.application.dtos.PaginationResponseDto;
 import com.example.demo.common.domain.criteria.Criteria;
+import com.example.demo.common.infrastructure.criteria.CriteriaSpecificationConverter;
 import com.example.demo.common.infrastructure.criteria.HibernateCriteriaConverter;
+import com.example.demo.common.infrastructure.criteria.PredicateFactory;
 import com.example.demo.products.application.dtos.request.GetPaginatedProductsQueryDto;
 import com.example.demo.products.application.ports.ProductRepository;
 import com.example.demo.products.domain.models.Product;
 import com.example.demo.products.infrastructure.entities.ProductEntity;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,13 +23,16 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
     private final JpaProductRepository productRepository;
     private final HibernateCriteriaConverter<ProductEntity> hibernateCriteriaConverter;
+    private final PredicateFactory predicateFactory;
 
     public ProductRepositoryAdapter(
             JpaProductRepository productRepository,
-            HibernateCriteriaConverter<ProductEntity> hibernateCriteriaConverter
+            HibernateCriteriaConverter<ProductEntity> hibernateCriteriaConverter,
+            PredicateFactory predicateFactory
     ) {
         this.productRepository = productRepository;
         this.hibernateCriteriaConverter = hibernateCriteriaConverter;
+        this.predicateFactory = predicateFactory;
     }
 
     @Override
@@ -69,5 +72,12 @@ public class ProductRepositoryAdapter implements ProductRepository {
         return query.getResultList().stream()
                 .map(ProductEntity::toModel)
                 .toList();
+    }
+
+    @Override
+    public List<Product> getProductsByCriteriaSpecification(Criteria criteria) {
+        CriteriaSpecificationConverter<ProductEntity> specification = new CriteriaSpecificationConverter<>(criteria, predicateFactory);
+        List<ProductEntity> products = productRepository.findAll(specification);
+        return products.stream().map(ProductEntity::toModel).toList();
     }
 }

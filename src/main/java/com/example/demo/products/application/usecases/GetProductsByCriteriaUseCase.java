@@ -52,7 +52,7 @@ public class GetProductsByCriteriaUseCase {
 
         Criteria criteria = new Criteria(filters, Order.none());
 
-        List<Product> products = this.productRepository.getProductsByCriteria(criteria);
+        List<Product> products = this.productRepository.getProductsByCriteriaSpecification(criteria);
         return products.stream().map(GetProductResponseDto::new).toList();
     }
 }
